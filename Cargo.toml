@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "dygpi_core",
+    "dygpi_ex1",
+    "dygpi_ex2",
+    "dygpi_test"
+]
