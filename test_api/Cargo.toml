@@ -1,0 +1,10 @@
+[package]
+name = "test_api"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+crate-type = ["dylib", "rlib"]
+
+[dependencies]
+dygpi = { version = "0.1", path = ".." }

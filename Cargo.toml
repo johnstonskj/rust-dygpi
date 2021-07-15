@@ -1,8 +1,38 @@
-[workspace]
+[package]
+name = "dygpi"
+version = "0.1.0"
+edition = "2018"
 
+[workspace]
 members = [
-    "dygpi_core",
-    "dygpi_ex1",
-    "dygpi_ex2",
-    "dygpi_test"
+    "test_api",
+    "test_plugin",
+    "test_main",
 ]
+default-members = [
+    "test_api",
+    "test_plugin",
+    "test_main",
+]
+
+[features]
+config_serde = ["serde"]
+
+[dependencies]
+libloading = "0.7"
+log = "0.4"
+
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+[build-dependencies]
+rustc_version = "0.4"
+
+[dev-dependencies]
+toml = "0.5"
+serde_json = "1.0"
+serde_yaml = "0.8"
+
+[dev-dependencies.cargo-husky]
+version = "1"
+default-features = false # Disable features which are enabled by default
+features = ["precommit-hook", "run-cargo-fmt", "run-cargo-test" ]
