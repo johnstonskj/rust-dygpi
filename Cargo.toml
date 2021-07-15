@@ -1,7 +1,14 @@
 [package]
 name = "dygpi"
+description = "Provides support for 'Dynamic Generic PlugIns', library based plugins for Rust."
+authors = ["Simon Johnston <johnstonskj@gmail.com>"]
 version = "0.1.0"
 edition = "2018"
+documentation = "https://docs.rs/dygpi/"
+repository = "https://github.com/johnstonskj/rust-dygpi.git"
+license = "MIT"
+readme = "README.md"
+publish = true
 
 [workspace]
 members = [
