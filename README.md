@@ -12,7 +12,6 @@ Provides support for _Dynamic Generic PlugIns_, library based plugins for Rust.
 
 -----
 
-
 # Example
 
 TBD

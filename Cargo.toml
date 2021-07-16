@@ -23,6 +23,7 @@ default-members = [
 ]
 
 [features]
+default = ["config_serde"]
 config_serde = ["serde"]
 
 [dependencies]

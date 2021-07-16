@@ -1,9 +1,49 @@
 /*!
-One-line description.
+The components required by a plugin host to load/unload plugins.
 
-More detailed description, with
+The primary component of the plugin host's interaction is the [`PluginManager`](struct.PluginManager.html);
+this type manages the lifecycle of plugins, as well as opening and closing the necessary dynamic
+libraries.
 
 # Example
+
+As the example below shows, the plugin manager is relatively simple in it's interface. However,
+as any more complex host may require loading multiple libraries, and different types of plugins,
+the [`PluginManagerConfiguration`](../config/struct.PluginManagerConfiguration.html) type is a
+higher-level abstraction.
+
+```rust,no_run
+use dygpi::manager::PluginManager;
+use dygpi::plugin::Plugin;
+use std::sync::Arc;
+
+# const EFFECT_PLUGIN_ID: &str = "sound_effects";
+# #[derive(Debug)]
+# struct SoundEffectPlugin;
+# impl Plugin for SoundEffectPlugin {
+#     fn plugin_id(&self) -> &String {
+#         todo!()
+#     }
+#     fn on_load(&self) -> dygpi::error::Result<()> { Ok(()) }
+#     fn on_unload(&self) -> dygpi::error::Result<()> { Ok(()) }
+# }
+# impl SoundEffectPlugin {
+#     pub fn play(&self) {}
+# }
+let mut plugin_manager: PluginManager<SoundEffectPlugin> = PluginManager::default();
+
+plugin_manager
+    .load_plugins_from("libsound_one.dylib")
+    .unwrap();
+
+let plugin: Arc<SoundEffectPlugin> = plugin_manager
+    .get("sound_one::sound_one::DelayEffect")
+    .unwrap();
+
+println!("{}", plugin.plugin_id());
+
+plugin.play();
+```
 
 */
 
@@ -22,6 +62,10 @@ use std::sync::{Arc, RwLock};
 // Public Types
 // ------------------------------------------------------------------------------------------------
 
+///
+/// The plugin manager loads and unloads plugins from a library which is dynamically opened and
+/// closed as necessary.
+///
 #[derive(Debug)]
 pub struct PluginManager<T>
 where
@@ -31,6 +75,10 @@ where
     plugins: RwLock<HashMap<String, LoadedPlugin<T>>>,
 }
 
+///
+/// A registrar is created by a plugin manager and provided to the library's registration
+/// function to register any plugins it has.
+///
 #[derive(Debug)]
 pub struct PluginRegistrar<T>
 where
@@ -60,10 +108,6 @@ struct LoadedLibrary {
 }
 
 // ------------------------------------------------------------------------------------------------
-// Public Functions
-// ------------------------------------------------------------------------------------------------
-
-// ------------------------------------------------------------------------------------------------
 // Implementations
 // ------------------------------------------------------------------------------------------------
 
@@ -82,12 +126,21 @@ where
         }
     }
 
+    ///
+    /// Register a plugin, this will store the plugin in the registrar until the registration is
+    /// completed. After the registration function completes, the plugin manager will add all
+    /// plugins, if no errors were reported.
+    ///
     pub fn register(&mut self, plugin: T) {
         if self.error.is_none() {
             self.plugins.push(Arc::new(plugin));
         }
     }
 
+    ///
+    /// Inform the registrar of an error, note that if multiple are recorded only the last will
+    /// propagate out of the plugin manager.
+    ///
     pub fn error(&mut self, error: Box<dyn std::error::Error>) {
         self.error = Some(error);
     }
@@ -128,6 +181,12 @@ impl<T> PluginManager<T>
 where
     T: Plugin,
 {
+    ///
+    /// Construct a new plugin manager and have it use the value of the named environment
+    /// variable as a search path when loading libraries.
+    ///
+    /// The value is assumed to be a list of paths separated by the colon, `':'` character.
+    ///
     pub fn new_with_search_env_var(env_var: &str) -> Self {
         match env::var(env_var) {
             Ok(value) => {
@@ -144,6 +203,10 @@ where
         }
     }
 
+    ///
+    /// Construct a new plugin manager and have it use the values of the string slice
+    /// as a search path when loading libraries.
+    ///
     pub fn new_with_search_path(search_path: &[&str]) -> Self {
         Self {
             search_path: search_path.iter().map(|s| s.to_string()).collect(),
@@ -151,6 +214,12 @@ where
         }
     }
 
+    ///
+    /// Load all plugins from the libraries that are specified in the named environment variable.
+    ///
+    /// The environment variable's value is assumed to be a list of paths separated by the colon,
+    /// `':'` character.
+    ///
     pub fn load_all_plugins_from_env(&mut self, env_var: &str) -> Result<()> {
         info!("PluginManager::load_all_plugins_from_env({:?})", env_var);
         if let Ok(env_value) = env::var(env_var) {
@@ -163,6 +232,9 @@ where
         Ok(())
     }
 
+    ///
+    /// Load all plugins from the libraries specified in the string slice, each value is a file path.
+    ///
     pub fn load_plugins_from_all(&mut self, file_names: &[&str]) -> Result<()> {
         info!("PluginManager::load_all_plugins_from({:?})", file_names);
         for file_name in file_names {
@@ -171,6 +243,9 @@ where
         Ok(())
     }
 
+    ///
+    /// Load all plugins from a single library with the provided file name/path.
+    ///
     #[allow(unsafe_code)]
     pub fn load_plugins_from(&mut self, file_name: &str) -> Result<()> {
         info!("PluginManager::load_plugins_from({:?})", file_name);
@@ -199,29 +274,47 @@ where
         Ok(())
     }
 
+    ///
+    /// Returns `true` if the plugin manager has no plugins registered, else `false`.
+    ///
     pub fn is_empty(&self) -> bool {
         self.plugins.read().unwrap().is_empty()
     }
 
+    ///
+    /// Return the number of plugins registered in this plugin manager.
+    ///
     pub fn len(&self) -> usize {
         self.plugins.read().unwrap().len()
     }
 
-    pub fn contains(&self, plugin_name: &str) -> bool {
+    ///
+    /// Returns `true` if this plugin manager has a registered plugin with the provided plugin
+    /// identifier, else `false`.
+    pub fn contains(&self, plugin_id: &str) -> bool {
         let plugins = self.plugins.read().unwrap();
-        plugins.contains_key(plugin_name)
+        plugins.contains_key(plugin_id)
     }
 
-    pub fn get(&self, plugin_name: &str) -> Option<Arc<T>> {
+    ///
+    /// Returns the plugin with the provided plugin identifier, if one exists, else `None`.
+    pub fn get(&self, plugin_id: &str) -> Option<Arc<T>> {
         let plugins = self.plugins.read().unwrap();
-        plugins.get(plugin_name).map(|p| p.plugin.clone())
+        plugins.get(plugin_id).map(|p| p.plugin.clone())
     }
 
+    ///
+    /// Return all the plugins registered in this plugin manager as a vector.
+    ///
     pub fn plugins(&self) -> Vec<Arc<T>> {
         let plugins = self.plugins.read().unwrap();
         plugins.values().map(|p| p.plugin.clone()).collect()
     }
 
+    ///
+    /// Unload all plugins, and associated libraries, that are currently registered in this
+    /// plugin manager.
+    ///
     pub fn unload_all(&mut self) -> Result<()> {
         info!("PluginManager::unload_all()");
         let plugin_names: Vec<String> = {
@@ -234,6 +327,10 @@ where
         Ok(())
     }
 
+    ///
+    /// Unload the plugin identified by the provided plugin identifier, if one exists. Note that
+    /// this method will also close the plugin library if no other plugins are using it.
+    ///
     pub fn unload_plugin(&mut self, plugin_name: &str) -> Result<()> {
         info!("PluginManager::unload_plugin({:?})", plugin_name);
         let mut plugins = self.plugins.write().unwrap();
