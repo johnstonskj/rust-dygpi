@@ -1,12 +1,12 @@
 use dygpi::manager::PluginManager;
+use sound_api::SoundEffectPlugin;
 use std::sync::Arc;
-use test_api::MyPlugin;
 
 #[test]
 fn test_library_not_found() {
     let _ = pretty_env_logger::try_init();
 
-    let mut plugin_manager: PluginManager<MyPlugin> = PluginManager::default();
+    let mut plugin_manager: PluginManager<SoundEffectPlugin> = PluginManager::default();
 
     let result = plugin_manager.load_plugins_from("lib_unknown.dylib");
     assert!(result.is_err());
@@ -21,7 +21,7 @@ fn test_library_not_found() {
 fn test_library_with_no_plugins() {
     let _ = pretty_env_logger::try_init();
 
-    let mut plugin_manager: PluginManager<MyPlugin> = PluginManager::default();
+    let mut plugin_manager: PluginManager<SoundEffectPlugin> = PluginManager::default();
 
     let result = plugin_manager.load_plugins_from("libtest_api.dylib");
     assert!(result.is_err());
@@ -35,15 +35,18 @@ fn test_library_with_no_plugins() {
 fn test_my_plugin() {
     let _ = pretty_env_logger::try_init();
 
-    let mut plugin_manager: PluginManager<MyPlugin> = PluginManager::default();
+    let mut plugin_manager: PluginManager<SoundEffectPlugin> = PluginManager::default();
 
     plugin_manager
-        .load_plugins_from("libtest_plugin.dylib")
+        .load_plugins_from("libsound_plugin.dylib")
         .unwrap();
 
-    let plugin: Arc<MyPlugin> = plugin_manager
-        .get("test_plugin::test_plugin::MyPlugin")
+    assert!(!plugin_manager.is_empty());
+    assert_eq!(plugin_manager.len(), 1);
+
+    let plugin: Arc<SoundEffectPlugin> = plugin_manager
+        .get("sound_plugin::sound_plugin::DelayEffect")
         .unwrap();
 
-    plugin.hello();
+    plugin.play();
 }

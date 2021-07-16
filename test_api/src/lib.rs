@@ -1,65 +1,45 @@
-/*!
-One-line description.
-
-More detailed description, with
-
-# Example
-
-*/
-
 use dygpi::plugin::Plugin;
 
 // ------------------------------------------------------------------------------------------------
 // Public Types
 // ------------------------------------------------------------------------------------------------
 
+#[derive(Debug, Default)]
+pub struct SoundEngine;
+
+#[derive(Debug, Default)]
+pub struct MediaStream;
+
 #[derive(Debug)]
-pub struct MyPlugin {
-    name: String,
+pub struct SoundEffectPlugin {
+    id: String,
+    engine: SoundEngine,
+    media: MediaStream,
 }
-
-// ------------------------------------------------------------------------------------------------
-// Private Types
-// ------------------------------------------------------------------------------------------------
-
-// ------------------------------------------------------------------------------------------------
-// Public Functions
-// ------------------------------------------------------------------------------------------------
 
 // ------------------------------------------------------------------------------------------------
 // Implementations
 // ------------------------------------------------------------------------------------------------
 
-impl Plugin for MyPlugin {
+impl Plugin for SoundEffectPlugin {
     fn plugin_id(&self) -> &String {
-        &self.name
+        &self.id
     }
-
     fn on_load(&self) -> dygpi::error::Result<()> {
         Ok(())
     }
-
     fn on_unload(&self) -> dygpi::error::Result<()> {
         Ok(())
     }
 }
 
-impl MyPlugin {
-    pub fn new(name: &str) -> Self {
+impl SoundEffectPlugin {
+    pub fn new(id: &str) -> Self {
         Self {
-            name: name.to_string(),
+            id: id.to_string(),
+            engine: Default::default(),
+            media: Default::default(),
         }
     }
-
-    pub fn hello(&self) {
-        println!("hello from {}!", self.plugin_id());
-    }
+    pub fn play(&self) {}
 }
-
-// ------------------------------------------------------------------------------------------------
-// Private Functions
-// ------------------------------------------------------------------------------------------------
-
-// ------------------------------------------------------------------------------------------------
-// Modules
-// ------------------------------------------------------------------------------------------------

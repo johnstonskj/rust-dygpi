@@ -8,7 +8,7 @@ More detailed description, with
  */
 
 use dygpi::manager::PluginRegistrar;
-use test_api::MyPlugin;
+use sound_api::SoundEffectPlugin;
 
 // ------------------------------------------------------------------------------------------------
 // Public Types
@@ -23,8 +23,8 @@ use test_api::MyPlugin;
 // ------------------------------------------------------------------------------------------------
 
 #[no_mangle]
-pub extern "C" fn register_plugins(registrar: &mut PluginRegistrar<MyPlugin>) {
-    registrar.register(MyPlugin::new(PLUGIN_NAME));
+pub extern "C" fn register_plugins(registrar: &mut PluginRegistrar<SoundEffectPlugin>) {
+    registrar.register(SoundEffectPlugin::new(PLUGIN_NAME));
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -36,7 +36,7 @@ const PLUGIN_NAME: &str = concat!(
     "::",
     module_path!(),
     "::",
-    "MyPlugin"
+    "DelayEffect"
 );
 
 // ------------------------------------------------------------------------------------------------

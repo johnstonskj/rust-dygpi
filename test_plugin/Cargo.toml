@@ -1,5 +1,5 @@
 [package]
-name = "test_plugin"
+name = "sound_plugin"
 version = "0.1.0"
 edition = "2018"
 
@@ -8,4 +8,4 @@ crate-type = ["dylib"]
 
 [dependencies]
 dygpi = { version = "0.1", path = ".." }
-test_api = { version = "0.1", path = "../test_api" }
+sound_api = { version = "0.1", path = "../test_api" }
