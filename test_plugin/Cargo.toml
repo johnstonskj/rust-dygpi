@@ -1,0 +1,11 @@
+[package]
+name = "test_plugin"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+crate-type = ["dylib"]
+
+[dependencies]
+dygpi = { version = "0.1", path = ".." }
+test_api = { version = "0.1", path = "../test_api" }
