@@ -20,6 +20,11 @@ TBD
 
 ## Changes
 
+**Version 0.1.1**
+
+* Internal change to use search_path crate for library resolution.
+* Added Github action config.
+
 **Version 0.1.0**
 
 * Initial commit.

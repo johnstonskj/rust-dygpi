@@ -53,9 +53,9 @@ use crate::plugin::{
     PLUGIN_REGISTRATION_FN_NAME,
 };
 use libloading::{Library, Symbol};
+use search_path::SearchPath;
 use std::collections::HashMap;
 use std::env;
-use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
 // ------------------------------------------------------------------------------------------------
@@ -71,7 +71,7 @@ pub struct PluginManager<T>
 where
     T: Plugin,
 {
-    search_path: Vec<String>,
+    search_path: SearchPath,
     plugins: RwLock<HashMap<String, LoadedPlugin<T>>>,
 }
 
@@ -182,34 +182,12 @@ where
     T: Plugin,
 {
     ///
-    /// Construct a new plugin manager and have it use the value of the named environment
-    /// variable as a search path when loading libraries.
-    ///
-    /// The value is assumed to be a list of paths separated by the colon, `':'` character.
-    ///
-    pub fn new_with_search_env_var(env_var: &str) -> Self {
-        match env::var(env_var) {
-            Ok(value) => {
-                let search_path: Vec<&str> = value.split(":").collect();
-                Self::new_with_search_path(&search_path)
-            }
-            Err(e) => {
-                warn!(
-                    "Error retrieving environment variable '{}'; error: {}",
-                    env_var, e
-                );
-                Default::default()
-            }
-        }
-    }
-
-    ///
     /// Construct a new plugin manager and have it use the values of the string slice
     /// as a search path when loading libraries.
     ///
-    pub fn new_with_search_path(search_path: &[&str]) -> Self {
+    pub fn new_with_search_path(search_path: SearchPath) -> Self {
         Self {
-            search_path: search_path.iter().map(|s| s.to_string()).collect(),
+            search_path,
             plugins: Default::default(),
         }
     }
@@ -361,19 +339,11 @@ where
 
     fn find_library(&self, file_name: &str) -> String {
         trace!("PluginManager::find_library() > checking search path for library");
-        for path in &self.search_path {
-            let mut path = PathBuf::from(path);
-            path.push(file_name);
-            trace!(
-                "PluginManager::find_library() > {:?} is_file {}",
-                path,
-                path.is_file()
-            );
-            if path.is_file() {
-                return path.to_string_lossy().to_string();
-            }
+        if let Some(path) = self.search_path.find_file(file_name.as_ref()) {
+            return path.to_string_lossy().to_string();
+        } else {
+            file_name.to_string()
         }
-        file_name.to_string()
     }
 
     #[allow(unsafe_code)]
@@ -438,20 +408,15 @@ where
             .plugins()
             .map_err(|e| Error::from(ErrorKind::PluginRegistration(e)))?
         {
-            trace!(
-                "PluginManager::register_plugins() > registering plugin: {:?}",
-                plugin.plugin_id(),
-            );
             info!("PluginManager::register_plugins() > calling plugin `on_load`");
             plugin.on_load()?;
-            let previous = registry.insert(
+            if let Some(_) = registry.insert(
                 plugin.plugin_id().to_string(),
                 LoadedPlugin {
                     plugin,
                     in_library: from_library.clone(),
                 },
-            );
-            if previous.is_some() {
+            ) {
                 warn!("New plugin replaced a plugin with the same ID");
             }
         }
