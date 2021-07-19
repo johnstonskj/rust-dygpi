@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+cargo build -p sound_api -p sound_host -p sound_plugin
+cargo test -p sound_host

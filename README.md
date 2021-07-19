@@ -20,6 +20,10 @@ TBD
 
 ## Changes
 
+**Version 0.1.2**
+
+* Fixed the E2E example, added a simple run script.
+
 **Version 0.1.1**
 
 * Internal change to use search_path crate for library resolution.
