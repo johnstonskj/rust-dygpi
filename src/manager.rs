@@ -22,7 +22,7 @@ use std::sync::Arc;
 # struct SoundEffectPlugin;
 # impl Plugin for SoundEffectPlugin {
 #     fn plugin_id(&self) -> &String {
-#         todo!()
+#         unimplemented!()
 #     }
 #     fn on_load(&self) -> dygpi::error::Result<()> { Ok(()) }
 #     fn on_unload(&self) -> dygpi::error::Result<()> { Ok(()) }
@@ -49,8 +49,8 @@ plugin.play();
 
 use crate::error::{Error, ErrorKind, Result};
 use crate::plugin::{
-    compatibility_hash, CompatibilityFn, Plugin, PluginRegistrationFn, COMPATIBILITY_FN_NAME,
-    PLUGIN_REGISTRATION_FN_NAME,
+    compatibility_hash, CompatibilityFn, Plugin, PluginRegistrar, PluginRegistrationFn,
+    COMPATIBILITY_FN_NAME, PLUGIN_REGISTRATION_FN_NAME,
 };
 use libloading::{Library, Symbol};
 use search_path::SearchPath;
@@ -74,19 +74,6 @@ where
     search_path: SearchPath,
     registration_fn_name: Vec<u8>,
     plugins: RwLock<HashMap<String, LoadedPlugin<T>>>,
-}
-
-///
-/// A registrar is created by a plugin manager and provided to the library's registration
-/// function to register any plugins it has.
-///
-#[derive(Debug)]
-pub struct PluginRegistrar<T>
-where
-    T: Plugin,
-{
-    plugins: Vec<Arc<T>>,
-    error: Option<Box<dyn std::error::Error>>,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -113,46 +100,6 @@ struct LoadedLibrary {
 // ------------------------------------------------------------------------------------------------
 
 const UTF8_STRING_PANIC: &str = "Invalid UTF8 symbol name when converting to string";
-
-// ------------------------------------------------------------------------------------------------
-
-impl<T> PluginRegistrar<T>
-where
-    T: Plugin,
-{
-    pub(crate) fn default() -> Self {
-        Self {
-            plugins: Default::default(),
-            error: None,
-        }
-    }
-
-    ///
-    /// Register a plugin, this will store the plugin in the registrar until the registration is
-    /// completed. After the registration function completes, the plugin manager will add all
-    /// plugins, if no errors were reported.
-    ///
-    pub fn register(&mut self, plugin: T) {
-        if self.error.is_none() {
-            self.plugins.push(Arc::new(plugin));
-        }
-    }
-
-    ///
-    /// Inform the registrar of an error, note that if multiple are recorded only the last will
-    /// propagate out of the plugin manager.
-    ///
-    pub fn error(&mut self, error: Box<dyn std::error::Error>) {
-        self.error = Some(error);
-    }
-
-    pub(crate) fn plugins(self) -> std::result::Result<Vec<Arc<T>>, Box<dyn std::error::Error>> {
-        match self.error {
-            None => Ok(self.plugins),
-            Some(error) => Err(error),
-        }
-    }
-}
 
 // ------------------------------------------------------------------------------------------------
 
@@ -257,9 +204,53 @@ where
 
     ///
     /// Override the default registration function name
-    /// [`PLUGIN_REGISTRATION_FN_NAME`](../plugin/const.PLUGIN_REGISTRATION_FN_NAME.html). Note that
-    /// this function must be marked as `#[no_mangle] pub extern "C"` in the same manner as the
-    /// standard registration function.
+    /// [`PLUGIN_REGISTRATION_FN_NAME`](../plugin/const.PLUGIN_REGISTRATION_FN_NAME.html).
+    ///
+    /// This function **must** conform to the type
+    /// [`PluginRegistrationFn`](../plugin/function.PluginRegistrationFn.html), and must be marked
+    /// as `#[no_mangle] pub extern "C"` in the same manner as the standard registration function.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use dygpi::plugin::{Plugin, PluginRegistrar};
+    /// # #[derive(Debug)]
+    /// # struct SoundSourcePlugin;
+    /// # impl Plugin for SoundSourcePlugin {
+    /// #     fn plugin_id(&self) -> &String {
+    /// #         unimplemented!()
+    /// #     }
+    /// #     fn on_load(&self) -> dygpi::error::Result<()> { Ok(()) }
+    /// #     fn on_unload(&self) -> dygpi::error::Result<()> { Ok(()) }
+    /// # }
+    /// # impl SoundSourcePlugin {
+    /// #     pub fn new(id: &str) -> Self { Self {} }
+    /// # }
+    /// # #[derive(Debug)]
+    /// # struct SoundEffectPlugin;
+    /// # impl Plugin for SoundEffectPlugin {
+    /// #     fn plugin_id(&self) -> &String {
+    /// #         unimplemented!()
+    /// #     }
+    /// #     fn on_load(&self) -> dygpi::error::Result<()> { Ok(()) }
+    /// #     fn on_unload(&self) -> dygpi::error::Result<()> { Ok(()) }
+    /// # }
+    /// # impl SoundEffectPlugin {
+    /// #     pub fn new(id: &str) -> Self { Self {} }
+    /// # }
+    /// # const PLUGIN_NAME: &str = "RandomSource";
+    /// # const OTHER_PLUGIN_NAME: &str = "DelayEffect";
+    ///
+    /// #[no_mangle]
+    /// pub extern "C" fn register_sources(registrar: &mut PluginRegistrar<SoundSourcePlugin>) {
+    ///     registrar.register(SoundSourcePlugin::new(PLUGIN_NAME));
+    /// }
+    ///
+    /// #[no_mangle]
+    /// pub extern "C" fn register_effects(registrar: &mut PluginRegistrar<SoundEffectPlugin>) {
+    ///     registrar.register(SoundEffectPlugin::new(OTHER_PLUGIN_NAME));
+    /// }
+    /// ```
     ///
     pub fn set_registration_fn_name(&mut self, name: &[u8]) {
         self.registration_fn_name = name.to_vec()

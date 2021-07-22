@@ -20,6 +20,10 @@ TBD
 
 ## Changes
 
+**Version 0.1.3**
+
+* Moved the PluginRegistrar struct from the manager to plugin module; this seems cleaner from a client perspective.
+
 **Version 0.1.2**
 
 * Added the ability to override the registration function name, this allows for multiple plugin types in a single host.

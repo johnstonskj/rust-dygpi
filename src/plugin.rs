@@ -36,7 +36,7 @@ impl Plugin for SoundEffectPlugin {
 }
 
 impl SoundEffectPlugin {
-    pub fn new(id: &str) -> Self { todo!() }
+    pub fn new(id: &str) -> Self { unimplemented!() }
     pub fn play(&self) {}
 }
 ```
@@ -44,7 +44,7 @@ impl SoundEffectPlugin {
 # Example - Register Plugin
 
 ```rust
-use dygpi::manager::PluginRegistrar;
+use dygpi::plugin::PluginRegistrar;
 # use dygpi::plugin::Plugin;
 # #[derive(Debug)] struct SoundEngine;
 # #[derive(Debug)] struct MediaStream;
@@ -62,7 +62,7 @@ use dygpi::manager::PluginRegistrar;
 #     fn on_unload(&self) -> dygpi::error::Result<()> { Ok(()) }
 # }
 # impl SoundEffectPlugin {
-#     pub fn new(id: &str) -> Self { todo!() }
+#     pub fn new(id: &str) -> Self { unimplemented!() }
 #     pub fn play(&self) {}
 # }
 
@@ -79,11 +79,11 @@ pub extern "C" fn register_plugins<MyPlugin>(
 */
 
 use crate::error::Result;
-use crate::manager::PluginRegistrar;
 use std::any::Any;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 
 // ------------------------------------------------------------------------------------------------
 // Public Types
@@ -120,7 +120,7 @@ pub trait Plugin: Any + Debug + Sync + Send {
 /// into the plugin manager.
 ///
 /// ```rust
-/// use dygpi::manager::PluginRegistrar;
+/// use dygpi::plugin::PluginRegistrar;
 /// # use dygpi::plugin::Plugin;
 ///
 /// # #[derive(Debug)] struct SoundEngine;
@@ -139,7 +139,7 @@ pub trait Plugin: Any + Debug + Sync + Send {
 /// #     fn on_unload(&self) -> dygpi::error::Result<()> { Ok(()) }
 /// # }
 /// # impl SoundEffectPlugin {
-/// #     pub fn new(id: &str) -> Self { todo!() }
+/// #     pub fn new(id: &str) -> Self { unimplemented!() }
 /// #     pub fn play(&self) {}
 /// # }
 /// # const PLUGIN_ID: &str = concat!(env!("CARGO_PKG_NAME"), "::", module_path!(), "::DelayEffect");
@@ -156,6 +156,19 @@ pub type PluginRegistrationFn<T> = fn(registrar: &mut PluginRegistrar<T>);
 /// [`PluginRegistrationFn`](type.PluginRegistrationFn.html) type).
 ///
 pub const PLUGIN_REGISTRATION_FN_NAME: &[u8] = b"register_plugins\0";
+
+///
+/// A registrar is created by a plugin manager and provided to the library's registration
+/// function to register any plugins it has.
+///
+#[derive(Debug)]
+pub struct PluginRegistrar<T>
+where
+    T: Plugin,
+{
+    plugins: Vec<Arc<T>>,
+    error: Option<Box<dyn std::error::Error>>,
+}
 
 // ------------------------------------------------------------------------------------------------
 // Public Functions
@@ -184,4 +197,46 @@ pub extern "C" fn compatibility_hash() -> u64 {
     CARGO_PKG_VERSION.hash(&mut s);
     RUSTC_VERSION.hash(&mut s);
     s.finish()
+}
+
+// ------------------------------------------------------------------------------------------------
+// Implementations
+// ------------------------------------------------------------------------------------------------
+
+impl<T> PluginRegistrar<T>
+where
+    T: Plugin,
+{
+    pub(crate) fn default() -> Self {
+        Self {
+            plugins: Default::default(),
+            error: None,
+        }
+    }
+
+    ///
+    /// Register a plugin, this will store the plugin in the registrar until the registration is
+    /// completed. After the registration function completes, the plugin manager will add all
+    /// plugins, if no errors were reported.
+    ///
+    pub fn register(&mut self, plugin: T) {
+        if self.error.is_none() {
+            self.plugins.push(Arc::new(plugin));
+        }
+    }
+
+    ///
+    /// Inform the registrar of an error, note that if multiple are recorded only the last will
+    /// propagate out of the plugin manager.
+    ///
+    pub fn error(&mut self, error: Box<dyn std::error::Error>) {
+        self.error = Some(error);
+    }
+
+    pub(crate) fn plugins(self) -> std::result::Result<Vec<Arc<T>>, Box<dyn std::error::Error>> {
+        match self.error {
+            None => Ok(self.plugins),
+            Some(error) => Err(error),
+        }
+    }
 }
