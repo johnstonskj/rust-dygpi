@@ -22,6 +22,7 @@ TBD
 
 **Version 0.1.2**
 
+* Added the ability to override the registration function name, this allows for multiple plugin types in a single host.
 * Fixed the E2E example, added a simple run script.
 
 **Version 0.1.1**

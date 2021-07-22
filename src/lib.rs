@@ -10,8 +10,12 @@ external dynamic libraries at runtime.
       that both the _host_ and _provider_ depend upon.
 1. The plugin _provider_ (or _library_) crate **MUST** set crate-type to `"dylib"` and `"rlib"` in
    their cargo configuration.
-1. The plugin _provider_ **MUST** implement a function `register_plugins` which is passed a
+1. The plugin _provider_ **MUST** implement a function, named `register_plugins`, which is passed a
    registrar object to register any instances of the plugin _type_.
+   1. A plugin _provider_ can use an alternate name for the registration function but this must be
+      provided to the plugin manager via the
+      [`set_registration_fn_name`](manager/struct.PluginManager.html#method.set_registration_fn_name)
+      method.
 1. The plugin _host_ then uses the [`PluginManager`](manager/struct.PluginManager.html) to load libraries,
    and register plugins, that have the same type as the plugin _type_.
 1. The plugin _host_ **MAY** then use plugin manager's [`get`](manager/struct.PluginManager.html#method.get)
@@ -19,8 +23,8 @@ external dynamic libraries at runtime.
    plugin manager's [`plugins`](manager/struct.PluginManager.html#method.plugins) method to iterate
    over all plugins.
 
-Note, that while a plugin **MAY** register multiple plugins, currently it may only provide plugins
-of a common type. This restriction may be lifted in the future.
+Overriding the plugin registration function allows a plugin _host_ to provide plugins of different
+types by using separate registration functions for each type.
 
 # Example
 

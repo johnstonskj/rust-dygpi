@@ -72,6 +72,7 @@ where
     T: Plugin,
 {
     search_path: SearchPath,
+    registration_fn_name: Vec<u8>,
     plugins: RwLock<HashMap<String, LoadedPlugin<T>>>,
 }
 
@@ -162,6 +163,7 @@ where
     fn default() -> Self {
         Self {
             search_path: Default::default(),
+            registration_fn_name: PLUGIN_REGISTRATION_FN_NAME.to_vec(),
             plugins: Default::default(),
         }
     }
@@ -188,6 +190,7 @@ where
     pub fn new_with_search_path(search_path: SearchPath) -> Self {
         Self {
             search_path,
+            registration_fn_name: PLUGIN_REGISTRATION_FN_NAME.to_vec(),
             plugins: Default::default(),
         }
     }
@@ -250,6 +253,16 @@ where
         self.register_plugins(loaded_library)?;
 
         Ok(())
+    }
+
+    ///
+    /// Override the default registration function name
+    /// [`PLUGIN_REGISTRATION_FN_NAME`](../plugin/const.PLUGIN_REGISTRATION_FN_NAME.html). Note that
+    /// this function must be marked as `#[no_mangle] pub extern "C"` in the same manner as the
+    /// standard registration function.
+    ///
+    pub fn set_registration_fn_name(&mut self, name: &[u8]) {
+        self.registration_fn_name = name.to_vec()
     }
 
     ///
@@ -382,10 +395,10 @@ where
         let load_fn = unsafe {
             let loader_fn: Symbol<'_, PluginRegistrationFn<T>> = from_library
                 .library
-                .get(PLUGIN_REGISTRATION_FN_NAME)
+                .get(self.registration_fn_name.as_slice())
                 .map_err(|e| {
                     Error::from(ErrorKind::SymbolNotFound(
-                        String::from_utf8(PLUGIN_REGISTRATION_FN_NAME.to_vec())
+                        String::from_utf8(self.registration_fn_name.clone())
                             .expect(UTF8_STRING_PANIC),
                         Box::new(e),
                     ))
@@ -395,7 +408,7 @@ where
 
         trace!(
             "PluginManager::register_plugins() > calling `{}`",
-            String::from_utf8(PLUGIN_REGISTRATION_FN_NAME.to_vec()).expect(UTF8_STRING_PANIC)
+            String::from_utf8(self.registration_fn_name.clone()).expect(UTF8_STRING_PANIC)
         );
         let mut registrar = PluginRegistrar::default();
         load_fn(&mut registrar);
