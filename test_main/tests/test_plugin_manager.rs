@@ -23,9 +23,10 @@ fn test_library_with_no_plugins() {
 
     let mut plugin_manager: PluginManager<SoundEffectPlugin> = PluginManager::default();
 
-    let result = plugin_manager.load_plugins_from("libtest_api.dylib");
+    let result = plugin_manager.load_plugins_from("libsound_api.dylib");
     assert!(result.is_err());
     let err_message = format!("{:?}", result.err().unwrap());
+    println!("{}", err_message);
     assert!(err_message
         .starts_with(r##"Error(SymbolNotFound("register_plugins\u{0}", DlSym { desc: "dlsym(0x"##));
     assert!(err_message.ends_with(r##", register_plugins): symbol not found" }))"##));
@@ -46,6 +47,27 @@ fn test_my_plugin() {
 
     let plugin: Arc<SoundEffectPlugin> = plugin_manager
         .get("sound_plugin::sound_plugin::DelayEffect")
+        .unwrap();
+
+    plugin.play();
+}
+
+#[test]
+fn test_my_other_plugin() {
+    let _ = pretty_env_logger::try_init();
+
+    let mut plugin_manager: PluginManager<SoundEffectPlugin> = PluginManager::default();
+    plugin_manager.set_registration_fn_name(b"register_other_plugins\0");
+
+    plugin_manager
+        .load_plugins_from("libsound_plugin.dylib")
+        .unwrap();
+
+    assert!(!plugin_manager.is_empty());
+    assert_eq!(plugin_manager.len(), 1);
+
+    let plugin: Arc<SoundEffectPlugin> = plugin_manager
+        .get("sound_plugin::sound_plugin::ReverbEffect")
         .unwrap();
 
     plugin.play();

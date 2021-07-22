@@ -7,7 +7,7 @@ More detailed description, with
 
  */
 
-use dygpi::manager::PluginRegistrar;
+use dygpi::plugin::PluginRegistrar;
 use sound_api::SoundEffectPlugin;
 
 // ------------------------------------------------------------------------------------------------
@@ -27,6 +27,11 @@ pub extern "C" fn register_plugins(registrar: &mut PluginRegistrar<SoundEffectPl
     registrar.register(SoundEffectPlugin::new(PLUGIN_NAME));
 }
 
+#[no_mangle]
+pub extern "C" fn register_other_plugins(registrar: &mut PluginRegistrar<SoundEffectPlugin>) {
+    registrar.register(SoundEffectPlugin::new(OTHER_PLUGIN_NAME));
+}
+
 // ------------------------------------------------------------------------------------------------
 // Implementations
 // ------------------------------------------------------------------------------------------------
@@ -37,6 +42,14 @@ const PLUGIN_NAME: &str = concat!(
     module_path!(),
     "::",
     "DelayEffect"
+);
+
+const OTHER_PLUGIN_NAME: &str = concat!(
+    env!("CARGO_PKG_NAME"),
+    "::",
+    module_path!(),
+    "::",
+    "ReverbEffect"
 );
 
 // ------------------------------------------------------------------------------------------------
