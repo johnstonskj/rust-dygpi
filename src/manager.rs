@@ -76,6 +76,18 @@ where
     plugins: RwLock<HashMap<String, LoadedPlugin<T>>>,
 }
 
+#[cfg(target_os = "macos")]
+/// File name extension commonly used for a dynamic library.
+pub const PLATFORM_DYLIB_EXTENSION: &str = "dylib";
+
+#[cfg(target_os = "linux")]
+/// File name extension commonly used for a dynamic library.
+pub const PLATFORM_DYLIB_EXTENSION: &str = "so";
+
+#[cfg(target_os = "windows")]
+/// File name extension commonly used for a dynamic library.
+pub const PLATFORM_DYLIB_EXTENSION: &str = "dll";
+
 // ------------------------------------------------------------------------------------------------
 // Private Types
 // ------------------------------------------------------------------------------------------------

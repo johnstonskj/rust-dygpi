@@ -27,7 +27,10 @@ jobs:
 
       - name: Run Sound Example
         run: |
-          cargo build --package sound_api --package sound_host --package sound_plugin
+          cargo build --package sound_api
+          cargo build --package sound_plugin
+          cargo build --package sound_host
+          ls -la target/debug
           cargo test --package sound_host
 
       - name: Docs
