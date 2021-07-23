@@ -56,6 +56,7 @@ use libloading::{Library, Symbol};
 use search_path::SearchPath;
 use std::collections::HashMap;
 use std::env;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
 // ------------------------------------------------------------------------------------------------
@@ -88,6 +89,14 @@ pub const PLATFORM_DYLIB_EXTENSION: &str = "so";
 /// File name extension commonly used for a dynamic library.
 pub const PLATFORM_DYLIB_EXTENSION: &str = "dll";
 
+#[cfg(target_os = "windows")]
+/// Prefix for dynamic libraries, if any.
+pub const PLATFORM_DYLIB_PREFIX: &str = "";
+
+#[cfg(not(target_os = "windows"))]
+/// Prefix for dynamic libraries, if any.
+pub const PLATFORM_DYLIB_PREFIX: &str = "lib";
+
 // ------------------------------------------------------------------------------------------------
 // Private Types
 // ------------------------------------------------------------------------------------------------
@@ -105,6 +114,14 @@ where
 struct LoadedLibrary {
     file_name: String,
     library: Library,
+}
+
+// ------------------------------------------------------------------------------------------------
+// Public Functions
+// ------------------------------------------------------------------------------------------------
+
+pub fn make_platform_dylib_name(file_path: &Path) -> PathBuf {
+    unimplemented!()
 }
 
 // ------------------------------------------------------------------------------------------------
