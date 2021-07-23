@@ -56,6 +56,7 @@ use libloading::{Library, Symbol};
 use search_path::SearchPath;
 use std::collections::HashMap;
 use std::env;
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
@@ -120,8 +121,27 @@ struct LoadedLibrary {
 // Public Functions
 // ------------------------------------------------------------------------------------------------
 
+///
+/// Given a file name, or path with a file name, return a new path that formats the file name
+/// according to common platform conventions. If the file name appears to have an extension it
+/// will be overwritten by the platform extension.
+///
 pub fn make_platform_dylib_name(file_path: &Path) -> PathBuf {
-    unimplemented!()
+    if let Some(file_stem) = file_path.file_stem() {
+        let file_name = if !PLATFORM_DYLIB_PREFIX.is_empty() {
+            let mut prefixed = OsString::from(PLATFORM_DYLIB_PREFIX);
+            prefixed.push(file_stem);
+            prefixed
+        } else {
+            file_stem.to_os_string()
+        };
+        let mut file_path = file_path.to_path_buf();
+        file_path.set_file_name(file_name);
+        let _ = file_path.set_extension(PLATFORM_DYLIB_EXTENSION);
+        file_path
+    } else {
+        file_path.to_path_buf()
+    }
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -455,5 +475,31 @@ where
         }
 
         Ok(())
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+// Unit Tests
+// ------------------------------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(target_os = "macos")]
+    const EXPECTED_FILE: &str = "libmy_lib.dylib";
+
+    #[cfg(target_os = "linux")]
+    const EXPECTED_FILE: &str = "libmy_lib.so";
+
+    #[cfg(target_os = "windows")]
+    const EXPECTED_FILE: &str = "my_lib.dll";
+
+    #[test]
+    fn test_make_dylib_name() {
+        let file_name = make_platform_dylib_name("my_lib".as_ref());
+        assert_eq!(file_name.to_str().unwrap(), EXPECTED_FILE);
+        let file_name = make_platform_dylib_name("my_lib.foo".as_ref());
+        assert_eq!(file_name.to_str().unwrap(), EXPECTED_FILE);
     }
 }
