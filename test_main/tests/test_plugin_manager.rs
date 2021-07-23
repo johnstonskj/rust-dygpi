@@ -1,12 +1,13 @@
 use dygpi::manager::{PluginManager, PLATFORM_DYLIB_EXTENSION, PLATFORM_DYLIB_PREFIX};
 use sound_api::SoundEffectPlugin;
+use std::path::PathBuf;
 use std::sync::Arc;
 
-fn make_dylib_name(base_name: &str) -> String {
-    format!(
+fn make_dylib_name(base_name: &str) -> PathBuf {
+    PathBuf::from(format!(
         "{}{}.{}",
         PLATFORM_DYLIB_PREFIX, base_name, PLATFORM_DYLIB_EXTENSION
-    )
+    ))
 }
 
 #[test]

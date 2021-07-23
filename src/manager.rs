@@ -33,7 +33,7 @@ use std::sync::Arc;
 let mut plugin_manager: PluginManager<SoundEffectPlugin> = PluginManager::default();
 
 plugin_manager
-    .load_plugins_from("libsound_one.dylib")
+    .load_plugins_from("libsound_one.dylib".as_ref())
     .unwrap();
 
 let plugin: Arc<SoundEffectPlugin> = plugin_manager
@@ -113,7 +113,7 @@ where
 
 #[derive(Debug)]
 struct LoadedLibrary {
-    file_name: String,
+    file_name: PathBuf,
     library: Library,
 }
 
@@ -222,7 +222,7 @@ where
         info!("PluginManager::load_all_plugins_from_env({:?})", env_var);
         if let Ok(env_value) = env::var(env_var) {
             for file_name in env_value.split(":") {
-                self.load_plugins_from(file_name)?;
+                self.load_plugins_from(&PathBuf::from(file_name))?;
             }
         } else {
             warn!("Failed to find environment variable '{}'", env_var);
@@ -233,7 +233,7 @@ where
     ///
     /// Load all plugins from the libraries specified in the string slice, each value is a file path.
     ///
-    pub fn load_plugins_from_all(&mut self, file_names: &[&str]) -> Result<()> {
+    pub fn load_plugins_from_all(&mut self, file_names: &[&Path]) -> Result<()> {
         info!("PluginManager::load_all_plugins_from({:?})", file_names);
         for file_name in file_names {
             self.load_plugins_from(file_name)?;
@@ -245,19 +245,24 @@ where
     /// Load all plugins from a single library with the provided file name/path.
     ///
     #[allow(unsafe_code)]
-    pub fn load_plugins_from(&mut self, file_name: &str) -> Result<()> {
+    pub fn load_plugins_from(&mut self, file_name: &Path) -> Result<()> {
         info!("PluginManager::load_plugins_from({:?})", file_name);
 
-        let file_name = if !file_name.contains(&['/', '.'][..]) && !self.search_path.is_empty() {
+        let file_name = if (file_name.is_absolute() || file_name.parent().is_some())
+            && !self.search_path.is_empty()
+        {
             self.find_library(file_name)
         } else {
-            file_name.to_string()
+            file_name.to_path_buf()
         };
 
         trace!("PluginManager::load_plugins_from() > opening library");
         let library = unsafe {
             Library::new(&file_name).map_err(|e| {
-                Error::from(ErrorKind::LibraryOpenFailed(file_name.clone(), Box::new(e)))
+                Error::from(ErrorKind::LibraryOpenFailed(
+                    file_name.to_string_lossy().to_string(),
+                    Box::new(e),
+                ))
             })?
         };
 
@@ -395,11 +400,11 @@ where
                 if let Err(e) = in_library.library.close() {
                     error!(
                         "Error closing library {:?}; {}",
-                        in_library.file_name.to_string(),
+                        in_library.file_name.to_string_lossy().to_string(),
                         e
                     );
                     return Err(ErrorKind::LibraryCloseFailed(
-                        in_library.file_name.to_string(),
+                        in_library.file_name.to_string_lossy().to_string(),
                         Box::new(e),
                     )
                     .into());
@@ -411,13 +416,11 @@ where
 
     // --------------------------------------------------------------------------------------------
 
-    fn find_library(&self, file_name: &str) -> String {
+    fn find_library(&self, file_name: &Path) -> PathBuf {
         trace!("PluginManager::find_library() > checking search path for library");
-        if let Some(path) = self.search_path.find_file(file_name.as_ref()) {
-            return path.to_string_lossy().to_string();
-        } else {
-            file_name.to_string()
-        }
+        self.search_path
+            .find_file(file_name)
+            .unwrap_or(file_name.to_path_buf())
     }
 
     #[allow(unsafe_code)]
@@ -441,7 +444,10 @@ where
                 "Version incompatibility {:?} != {:?}",
                 lib_compatibility_hash, local_compatibility_hash
             );
-            return Err(ErrorKind::IncompatibleLibraryVersion(library.file_name.clone()).into());
+            return Err(ErrorKind::IncompatibleLibraryVersion(
+                library.file_name.to_string_lossy().to_string(),
+            )
+            .into());
         }
         trace!("PluginManager::check_compatibility() > compatibility version check passed");
         Ok(())

@@ -20,6 +20,10 @@ TBD
 
 ## Changes
 
+**Version 0.1.5**
+
+* Changed the PluginManager API to take Path and PathBuf values not strings for library names.
+ 
 **Version 0.1.4**
 
 * Added public function to make dylib file names.

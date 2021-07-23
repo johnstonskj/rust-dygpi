@@ -42,8 +42,8 @@ Given the following simple configuration we can save it in any format supported 
 use dygpi::config::PluginManagerConfiguration;
 
 let mut config = PluginManagerConfiguration::default();
-let _ = config.insert("sound_effects", &["beep", "boop"]);
-let _ = config.insert("light_effects", &["bright", "mood"]);
+let _ = config.insert("sound_effects", &["beep".as_ref(), "boop".as_ref()]);
+let _ = config.insert("light_effects", &["bright".as_ref(), "mood".as_ref()]);
 ```
 
 In **TOML**:
@@ -87,6 +87,7 @@ use std::collections::{HashMap, HashSet};
 
 #[cfg(feature = "config_serde")]
 use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 
 // ------------------------------------------------------------------------------------------------
 // Public Types
@@ -116,7 +117,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "config_serde", derive(Deserialize, Serialize))]
 #[derive(Debug)]
 pub struct PluginManagerConfiguration {
-    plugins: HashMap<String, HashSet<String>>,
+    plugins: HashMap<String, HashSet<PathBuf>>,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -158,35 +159,39 @@ impl PluginManagerConfiguration {
     pub fn plugin_libraries_for_type(
         &self,
         plugin_type: &str,
-    ) -> Option<impl Iterator<Item = &String>> {
+    ) -> Option<impl Iterator<Item = &PathBuf>> {
         self.plugins.get(plugin_type).map(|vs| vs.iter())
     }
 
     /// Insert a list of libraries for the named plugin type; if there exists an entry for this
     /// type already it will be replaced. Note that this method will panic if the library list is
     /// empty.
-    pub fn insert(&mut self, plugin_type: &str, library_list: &[&str]) -> Option<HashSet<String>> {
+    pub fn insert(
+        &mut self,
+        plugin_type: &str,
+        library_list: &[&Path],
+    ) -> Option<HashSet<PathBuf>> {
         assert!(!library_list.is_empty());
         self.plugins.insert(
             plugin_type.to_string(),
-            library_list.iter().map(|s| s.to_string()).collect(),
+            library_list.iter().map(|p| p.to_path_buf()).collect(),
         )
     }
 
     /// Merge a list of libraries into the configuration for the plugin type. if there exists an
     /// entry for this type already the values provided will be added to the list, if not then this
     /// acts exactly as `insert`. Note that this method will panic if the library list is empty.
-    pub fn merge(&mut self, plugin_type: &str, library_list: &[&str]) {
+    pub fn merge(&mut self, plugin_type: &str, library_list: &[&Path]) {
         assert!(!library_list.is_empty());
         if let Some(libraries) = self.plugins.get_mut(plugin_type) {
-            libraries.extend(library_list.iter().map(|s| s.to_string()))
+            libraries.extend(library_list.iter().map(|p| p.to_path_buf()))
         } else {
             let _ = self.insert(plugin_type, library_list);
         }
     }
 
     /// Removes and returns the plugin libraries for the plugin type.
-    pub fn remove(&mut self, plugin_type: &str) -> Option<HashSet<String>> {
+    pub fn remove(&mut self, plugin_type: &str) -> Option<HashSet<PathBuf>> {
         self.plugins.remove(plugin_type)
     }
 
@@ -235,8 +240,8 @@ impl PluginManagerConfiguration {
             manager.load_plugins_from_all(
                 &library_list
                     .iter()
-                    .map(|v| v.as_str())
-                    .collect::<Vec<&str>>(),
+                    .map(|p| p.as_path())
+                    .collect::<Vec<&Path>>(),
             )?;
             Ok(manager)
         } else {
@@ -258,8 +263,8 @@ mod tests {
     #[test]
     fn test_serialize_toml() {
         let mut config = PluginManagerConfiguration::default();
-        let _ = config.insert("sound", &["beep", "boop"]);
-        let _ = config.insert("light", &["bright", "mood"]);
+        let _ = config.insert("sound", &["beep".as_ref(), "boop".as_ref()]);
+        let _ = config.insert("light", &["bright".as_ref(), "mood".as_ref()]);
 
         println!("{}", toml::to_string(&config).unwrap());
     }
@@ -267,8 +272,8 @@ mod tests {
     #[test]
     fn test_serialize_json() {
         let mut config = PluginManagerConfiguration::default();
-        let _ = config.insert("sound", &["beep", "boop"]);
-        let _ = config.insert("light", &["bright", "mood"]);
+        let _ = config.insert("sound", &["beep".as_ref(), "boop".as_ref()]);
+        let _ = config.insert("light", &["bright".as_ref(), "mood".as_ref()]);
 
         println!("{}", serde_json::to_string(&config).unwrap());
     }
@@ -276,8 +281,8 @@ mod tests {
     #[test]
     fn test_serialize_yaml() {
         let mut config = PluginManagerConfiguration::default();
-        let _ = config.insert("sound", &["beep", "boop"]);
-        let _ = config.insert("light", &["bright", "mood"]);
+        let _ = config.insert("sound", &["beep".as_ref(), "boop".as_ref()]);
+        let _ = config.insert("light", &["bright".as_ref(), "mood".as_ref()]);
 
         println!("{}", serde_yaml::to_string(&config).unwrap());
     }

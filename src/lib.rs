@@ -53,7 +53,7 @@ fn main() {
     let mut plugin_manager: PluginManager<SoundEffectPlugin> = PluginManager::default();
 
     plugin_manager
-        .load_plugins_from("libsound_one.dylib")
+        .load_plugins_from("libsound_one.dylib".as_ref())
         .unwrap();
 
     let plugin: Arc<SoundEffectPlugin> = plugin_manager
