@@ -20,6 +20,11 @@ TBD
 
 ## Changes
 
+**Version 0.1.4**
+
+* Added public function to make dylib file names.
+* Reworked Github action and test cases for non-macos platforms.
+
 **Version 0.1.3**
 
 * Moved the PluginRegistrar struct from the manager to plugin module; this seems cleaner from a client perspective.

@@ -123,8 +123,29 @@ struct LoadedLibrary {
 
 ///
 /// Given a file name, or path with a file name, return a new path that formats the file name
-/// according to common platform conventions. If the file name appears to have an extension it
-/// will be overwritten by the platform extension.
+/// according to common platform conventions. `PluginManager` does not use this function directly,
+/// it is up to the client to determine whether to use this before passing a file path to the
+/// manager.
+///
+/// # Example
+///
+/// The following will return "`libplugins.dylib`" on macos, "`libplugins.so`" on linux, and
+/// "`plugins.dll`" on windows.
+///
+/// ```rust
+/// use dygpi::manager::make_platform_dylib_name;
+///
+/// let dylib_name = make_platform_dylib_name("plugins".as_ref());
+/// ```
+///
+/// If the file name appears to have an extension it will be overwritten by the platform extension.
+/// So, the following will replace "`foo`" with the platform extension.
+///
+/// ```rust
+/// use dygpi::manager::make_platform_dylib_name;
+///
+/// let dylib_name = make_platform_dylib_name("plugins/aplugin.foo".as_ref());
+/// ```
 ///
 pub fn make_platform_dylib_name(file_path: &Path) -> PathBuf {
     if let Some(file_stem) = file_path.file_stem() {
