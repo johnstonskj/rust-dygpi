@@ -11,6 +11,7 @@ pub struct SoundEngine;
 pub struct MediaStream;
 
 #[derive(Debug)]
+#[allow(unused)]
 pub struct SoundEffectPlugin {
     id: String,
     engine: SoundEngine,

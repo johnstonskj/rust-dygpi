@@ -20,7 +20,7 @@ fn test_library_not_found() {
     assert!(result.is_err());
     let err_message = format!("{:?}", result.err().unwrap());
     println!("{}", err_message);
-    assert!(err_message.starts_with("Error(LibraryOpenFailed("));
+    assert!(err_message.starts_with("Error(LibraryOpenFailed"));
 }
 
 #[test]
@@ -32,8 +32,8 @@ fn test_library_with_no_plugins() {
     let result = plugin_manager.load_plugins_from(&make_dylib_name("sound_api"));
     assert!(result.is_err());
     let err_message = format!("{:?}", result.err().unwrap());
-    println!("{}", err_message);
-    assert!(err_message.starts_with(r##"Error(SymbolNotFound("register_plugins\u{0}""##));
+    println!("err_message: {}", err_message);
+    assert!(err_message.starts_with(r##"Error(SymbolNotFound("register_plugins"##));
 }
 
 #[test]
