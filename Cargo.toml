@@ -27,7 +27,7 @@ default = ["config_serde"]
 config_serde = ["serde"]
 
 [dependencies]
-libloading = "0.7"
+libloading = "0.8"
 log = "0.4"
 search_path = "0.1"
 
