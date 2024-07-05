@@ -5,5 +5,5 @@ edition = "2018"
 
 [dependencies]
 dygpi = { version = "0.1", path = ".." }
-pretty_env_logger = "0.4"
+pretty_env_logger = "0.5"
 sound_api = { version = "0.1", path = "../test_api" }
